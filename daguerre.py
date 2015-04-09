@@ -55,6 +55,22 @@ except Exception as err:
     print("pyyaml (for python3) must be installed!")
     sys.exit(-1)
 
+try:
+    # install: python-notify2
+    import notify2
+except Exception as err:
+    print("python-notify2 must be installed!")
+    sys.exit(-1)
+
+def notify_this(text):
+    notify2.init("daguerre")
+    n = notify2.Notification("Daguerre",
+                             text,
+                             "camera-photo")
+    n.set_timeout(2000)
+    n.show()
+
+
 # library & config are located next to this script
 daguerre_dir = os.path.dirname(os.path.realpath(__file__))
 CONFIG_FILE = os.path.join(daguerre_dir, "daguerre.yaml")
@@ -367,3 +383,5 @@ if __name__=="__main__":
         logger.debug("JPGs dealt with in %.3fs."%( (time.perf_counter() - start)))
 
     logger.info( "Done, card can be removed.")
+    notify_this("Daguerre has finished importing pictures,"
+                "it is safe to remove the CF card.")
