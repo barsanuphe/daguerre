@@ -15,6 +15,15 @@ if sys.version_info < (3,0,0):
   print("You need python 3.0 or later to run this script.")
   sys.exit(-1)
 
+# install: python-yaml, python-notify2
+modules = ["yaml", "notify2"]
+for module in modules:
+    try:
+        __import__(module)
+    except ImportError:
+        print("%s must be installed!" % module)
+        sys.exit(-1)
+
 # libgexiv2 + python-gobject required
 try:
     from gi.repository import GExiv2
@@ -49,18 +58,6 @@ except AssertionError as err:
     #global EXIFTOOL_PRESENT
     EXIFTOOL_PRESENT = False
 
-try:
-    import yaml
-except Exception as err:
-    print("pyyaml (for python3) must be installed!")
-    sys.exit(-1)
-
-try:
-    # install: python-notify2
-    import notify2
-except Exception as err:
-    print("python-notify2 must be installed!")
-    sys.exit(-1)
 
 def notify_this(text):
     notify2.init("daguerre")
