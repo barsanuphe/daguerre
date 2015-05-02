@@ -20,10 +20,10 @@ class ConfigFile(object):
             self.all_config = yaml.load(open(self.configuration_file.as_posix(), 'r'))
             # quick check everything needed is here
             try:
-                assert "config"     in list(self.all_config.keys())
-                assert "lenses"     in list(self.all_config.keys())
-                assert "cameras"    in list(self.all_config.keys())
-                assert "directory"  in list(self.all_config["config"].keys())
+                assert "config"     in self.all_config
+                assert "lenses"     in self.all_config
+                assert "cameras"    in self.all_config
+                assert "directory"  in self.all_config["config"]
             except Exception as err:
                 print("Missing config option: ", err)
                 raise Exception("Invalid configuration file!")
@@ -32,7 +32,7 @@ class ConfigFile(object):
 
     @property
     def directory(self):
-        return self.all_config["config"].get("directory", "")
+        return Path(self.all_config["config"].get("directory", ""))
 
     @property
     def lenses(self):

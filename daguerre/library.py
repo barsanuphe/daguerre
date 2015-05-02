@@ -97,27 +97,46 @@ class Library(object):
             directory = Path(self.config_file.directory, directory)
             assert directory.exists()
 
-        all_file_groups = {}
+        # list of Pictures in directory
+        pics = [Picture(x, self.config_file)
+                for x in directory.rglob("*")
+                if x.suffix.lower() in ['.jpg', '.cr2']]
 
-        for root, dirs, files in os.walk(directory):
-            for file in [Path(f) for f in files if Path(f).suffix in [".jpg", ".cr2"]]:
-                #TODO récup timestamp et id
-                all_file_groups[(timestamp, id)] = file
+        all_file_groups = {}
+        # group by number and date
+        for p in pics:
+            p.read_metadata()
+            if (p.date, p.number) in all_file_groups:
+                all_file_groups[(p.date, p.number)].append(p)
+            else:
+                all_file_groups[(p.date, p.number)] = [p]
 
         orphans = []
-        for (t,i) in list(all_file_groups.keys()):
+        for (t,i) in all_file_groups:
             group = all_file_groups[(t,i)]
-            cr2s = [p for p in group if p.suffix == '.cr2']
-            jpgs = [p for p in group if p.suffix == '.jpg']
+            cr2s = [p for p in group if p.path.suffix == '.cr2']
+            jpgs = [p for p in group if p.path.suffix == '.jpg']
 
             if cr2s == []:
                 pass
                 # print("No raw file for %s"%jpgs[0])
-            if jpgs == []:
+            if jpgs == [] and cr2s != []:
                 orphans.extend(cr2s)
 
-        print("\n".join(orphans))
+        if orphans != []:
+            print("Orphans:")
+            print("\t", "\t\n".join([o.path.name for o in orphans]))
+        else:
+            print("No orphan cr2 found.")
         return orphans
 
     def remove_single_raw_files(self, directory=None):
-        pass
+        orphans = self.list_single_raw_files(directory)
+        if orphans != []:
+            rep = input("\n!! Remove files? (y/N) ")
+            if rep.lower() == "y":
+                for o in orphans:
+                    print(" + Removing %s..."%o.path.name)
+                    os.remove(o.path.as_posix())
+            else:
+                print("Nothing was done.")

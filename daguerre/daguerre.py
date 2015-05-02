@@ -115,8 +115,10 @@ def main():
         print("refresh")
         l.refresh()
     if args.clean_raw is not None:
-        # TODO clean + set directory
-        print(l.list_single_raw_files())
+        try:
+            l.remove_single_raw_files(args.clean_raw)
+        except AssertionError as err:
+            print("Subdirectory %s does not exist." % args.clean_raw)
 
 
 if __name__=="__main__":

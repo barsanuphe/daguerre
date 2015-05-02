@@ -12,6 +12,8 @@ Please note this is not stable yet.
 **You may lose data.**
 And losing pictures is awful.
 
+
+
 ## Table of Contents
 
 - [Requirements](#requirements)
@@ -95,6 +97,13 @@ Import pictures from all connected cards:
 
     daguerre --import all
 
+Remove orphan raw files (cr2), in the `2007-03` subdirectory.
+
+    daguerre --clean-raw 2007-03
+
+This last command assumes the normal mode of operation is to have raw+jpgs files.
+Orphan raw files are cr2 files without any corresponding jpg files, presumably
+because they were awful shots.
 
 ### Configuration
 

@@ -40,12 +40,12 @@ class Picture(object):
                 self.lens = "%s-%smm"%(int(min_focal/div), int(max_focal/div))
             assert self.lens is not None # out of ideas if lens is still None
 
-            if self.camera in list(self.config.cameras.keys()):
+            if self.camera in self.config.cameras:
                 self.camera = self.config.cameras[self.camera]
             else:
                 raise Exception("Could not identify camera %s"%self.camera)
 
-            if self.lens in list(self.config.lenses.keys()):
+            if self.lens in self.config.lenses:
                 self.lens = self.config.lenses[self.lens]
             else:
                 raise Exception("Could not identify lens %s"%self.lens)
