@@ -1,6 +1,8 @@
 import os
 import re
 from pathlib import Path
+import datetime
+import shutil
 
 from daguerre.checks import *
 from daguerre.logger import *
@@ -18,10 +20,12 @@ class Picture(object):
         self.expr = IMG_REGEXP
         self.new_name_generated = False
         self.config = config
+        self._is_bw = None
+        self._number = None
 
     def read_metadata(self):
         try:
-            exif = GExiv2.Metadata(self.path)
+            exif = GExiv2.Metadata(self.path.as_posix())
 
             datetime_original = exif["Exif.Photo.DateTimeOriginal"]
             self.date = datetime.datetime.strptime(datetime_original,
@@ -36,82 +40,92 @@ class Picture(object):
                 self.lens = "%s-%smm"%(int(min_focal/div), int(max_focal/div))
             assert self.lens is not None # out of ideas if lens is still None
 
-            if self.camera in list(self.config["cameras"].keys()):
-                self.camera = self.config["cameras"][self.camera]
+            if self.camera in list(self.config.cameras.keys()):
+                self.camera = self.config.cameras[self.camera]
             else:
                 raise Exception("Could not identify camera %s"%self.camera)
 
-            if self.lens in list(self.config["lenses"].keys()):
-                self.lens = self.config["lenses"][self.lens]
+            if self.lens in list(self.config.lenses.keys()):
+                self.lens = self.config.lenses[self.lens]
             else:
                 raise Exception("Could not identify lens %s"%self.lens)
 
         except Exception as err:
             logger.error( err )
             logger.error( "ERR: file %s does not have valid EXIF data" % self.path.name)
-            print('tags', exif.get_exif_tags())
             raise Exception("File with unrecognizable metadata.")
 
     @property
     def number(self):
-        try:
-            (number, bw) = self.expr.findall(os.path.basename(self.path).lower())[0]
-            return number
-        except:
-            raise Exception("Bad format for file %s" % self.path)
+        if self._number is None:
+            try:
+                (self._number, bw) = self.expr.findall(self.path.name.lower())[0]
+                return self._number
+            except:
+                raise Exception("Bad format for file %s" % self.path)
+        else:
+            return self._number
 
     @property
     def is_bw(self):
-        try:
-            (number, bw) = self.expr.findall(os.path.basename(self.path).lower())[0]
-            return bw == '-bw'
-        except:
-            raise Exception("Bad format for file %s"%self.path)
+        if self._is_bw is None:
+            try:
+                (number, bw) = self.expr.findall(self.path.name.lower())[0]
+                self._is_bw = (bw == '-bw')
+                return self._is_bw
+            except:
+                raise Exception("Bad format for file %s"%self.path)
+        else:
+            return self._is_bw
 
-    def generate_new_name(self):
+    @property
+    def imported_path(self):
+        # checking metadata was read
+        if not hasattr(self, "camera"):
+            self.read_metadata()
         timestamp = self.date.strftime("%Y-%m-%d-%Hh%Mm%Ss")
         if self.is_bw:
-            return "%s_%s.%s_%04d-bw%s" % (timestamp,
+            name = "%s_%s.%s_%04d-bw%s" % (timestamp,
                                            self.camera,
                                            self.lens,
                                            int(self.number),
                                            self.path.suffix.lower())
         else:
-            return "%s_%s.%s_%04d%s" % (timestamp,
+            name = "%s_%s.%s_%04d%s" % (timestamp,
                                         self.camera,
                                         self.lens,
                                         int(self.number),
                                         self.path.suffix.lower())
+        return Path(self.destination_directory, name)
 
     @property
     def destination_directory(self):
+        # checking metadata was read
         if not hasattr(self, "date"):
             self.read_metadata()
-        archive_dir = Path(self.config.directory, "%s-%02d" % (self.date.year, self.date.month))
+        archive_dir = Path(self.config.directory,
+                           "%s-%02d" % (self.date.year, self.date.month))
         if not archive_dir.exists():
             logger.debug( "Creating %s" % archive_dir )
-            os.makedirs(archive_dir.as_posix())
+            archive_dir.mkdir(parents=True)
         return archive_dir
 
     def to_dir(self):
-        dest = Path(self.destination_directory, self.generate_new_name())
-        logger.debug( "\tMoving %s to %s" % (self.path.name, dest) )
-        shutil.move(self.path.as_posix(), dest.as_posix())
+        logger.debug("\tMoving %s to %s" % (self.path.name, self.imported_path))
+        shutil.move(self.path.as_posix(), self.imported_path.as_posix())
 
     def losslessly_rotate(self):
         #""" rotates losslessly if the photo is in portrait mode so that SmugMug is happy """
-        jpg_filename = Path(self.destination_directory, self.generate_new_name())
-        subprocess.check_call(["jhead", "-autorot", jpg_filename.as_posix()],
+        if self.imported_path.suffix == ".jpg":
+            subprocess.check_call(["jhead", "-autorot", self.imported_path.as_posix()],
                               stdout=subprocess.DEVNULL)
 
     def convert_to_bw(self):
         """ convert to jpg + add to active_images """
         if not self.is_bw:
-            jpg_filename = Path(self.destination_directory, self.generate_new_name())
-            jpg_bw_filename = jpg_filename.as_posix().replace(".jpg", "-bw.jpg")
-
+            jpg_bw_filename = self.imported_path.as_posix().replace(".jpg", "-bw.jpg")
             logger.debug( "\tConverting to B&W jpg" )
-            im = Image.open(jpg_filename)
+            im = Image.open(self.imported_path.as_posix())
             exif = im.info['exif']
             enhancer = ImageEnhance.Color(im)
             bw = enhancer.enhance(0.0)

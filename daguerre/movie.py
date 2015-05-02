@@ -11,13 +11,13 @@ class Movie(Picture):
             self.camera = infos[1]
             self.lens = infos[2]
 
-            if self.camera in list(self.config["cameras"].keys()):
-                self.camera = self.config["cameras"][self.camera]
+            if self.camera in list(self.config.cameras.keys()):
+                self.camera = self.config.cameras[self.camera]
             else:
                 raise Exception("Could not identify camera %s" % self.camera)
 
-            if self.lens in list(self.config["lenses"].keys()):
-                self.lens = self.config["lenses"][self.lens]
+            if self.lens in list(self.config.lenses.keys()):
+                self.lens = self.config.lenses[self.lens]
             else:
                 raise Exception("Could not identify lens %s" % self.lens)
 

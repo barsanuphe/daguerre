@@ -3,3 +3,6 @@ log
 *.pyc
 *.yaml
 TODO
+daguerre.egg-info/
+test/
+

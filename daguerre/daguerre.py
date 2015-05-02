@@ -19,16 +19,16 @@ CONFIG_FILE = "daguerre.yaml"
 
 def main():
     logger.info( "# D A G U E R R E #\n" )
-    
+
     # TODO with Library(CONFIG_FILE) as l: ...
     l = Library(CONFIG_FILE)
-    
+
     logger.info( "Directory:   %s" % l.config_file.directory )
 
     logger.debug( "Lenses: %s" % l.config_file.lenses)
     logger.debug( "Cameras: %s" % l.config_file.cameras)
     logger.debug( "Mount root: %s" % l.config_file.mount_root)
-    
+
     parser = argparse.ArgumentParser(description='Daguerre.\nA script '
                                      'to deal with pictures.')
 
@@ -92,6 +92,7 @@ def main():
                                 dest='clean_raw',
                                 action='store',
                                 nargs="?",
+                                const="all",
                                 metavar="DIRECTORY",
                                 help='Clean up single CR2 files (in a directory).')
     # group_projects.add_argument('-b',
@@ -104,8 +105,7 @@ def main():
     args = parser.parse_args()
     logger.debug(args)
 
-
-    if args.import_cards != []:  
+    if args.import_cards is not None:
         l.import_from_cards(args.import_cards)
         os.sync()
         logger.info( "Done, card can be removed.")
@@ -114,7 +114,10 @@ def main():
     if args.refresh_files is not None:
         print("refresh")
         l.refresh()
-    
+    if args.clean_raw is not None:
+        # TODO clean + set directory
+        print(l.list_single_raw_files())
+
 
 if __name__=="__main__":
     main()
