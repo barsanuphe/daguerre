@@ -125,7 +125,9 @@ class Library(object):
 
         if orphans != []:
             print("Orphans:")
-            print("\t", "\t\n".join([o.path.name for o in orphans]))
+            orphans.sort(key=lambda p: p.path.name)
+            for o in orphans:
+                print("\t%s" % o.path.name)
         else:
             print("No orphan cr2 found.")
         return orphans
