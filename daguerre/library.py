@@ -35,8 +35,8 @@ class Library(object):
     def import_from_card(self, card_path):
         jpgs_to_process = []
         logger.info("# Searching for pictures or movies on card %s..." % card_path)
-        new_pics = [x for x in card_path.iterdir() if x.suffix.lower() in ['.jpg', '.cr2']]
-        new_movs = [x for x in card_path.iterdir() if x.suffix.lower() in ['.mov']]
+        new_pics = [x for x in card_path.rglob("*") if x.suffix.lower() in ['.jpg', '.cr2']]
+        new_movs = [x for x in card_path.rglob("*") if x.suffix.lower() in ['.mov']]
 
         if new_pics != []:
             start = time.perf_counter()

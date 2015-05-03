@@ -21,7 +21,7 @@ And losing pictures is awful.
 - [Usage](#usage)
 - [Example Commands](#example-commands)
 - [Configuration](#configuration)
-- [grenier.yaml example](#grenieryaml-example)
+- [daguerre.yaml example](#daguerreyaml-example)
 
 ### Requirements
 

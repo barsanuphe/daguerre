@@ -110,7 +110,7 @@ def main():
         os.sync()
         logger.info( "Done, card can be removed.")
         notify_this("Daguerre has finished importing pictures,"
-                "it is safe to remove the CF card.")
+                    "it is safe to remove the CF card.")
     if args.refresh_files is not None:
         print("refresh")
         l.refresh()
