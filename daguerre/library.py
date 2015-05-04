@@ -101,6 +101,7 @@ class Library(object):
         pics = [Picture(x, self.config_file)
                 for x in directory.rglob("*")
                 if x.suffix.lower() in ['.jpg', '.cr2']]
+        pics.sort(key=lambda p: p.path.name)
 
         all_file_groups = {}
         # group by number and date

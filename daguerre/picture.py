@@ -8,7 +8,10 @@ from daguerre.checks import *
 from daguerre.logger import *
 
 
-IMG_REGEXP = re.compile(r"[\w*]_(\d{4})(-bw)?[.jpg|.cr2|.mov]")
+IMG_REGEXP = re.compile(r"[\w*]_(\d{4})(-bw\d*)?(-\d*)?[.jpg|.cr2|.mov]")
+
+# http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html#LensType
+LENS_TYPES = { "254":"EF100mm f/2.8L Macro IS USM"}
 
 
 class Picture(object):
@@ -22,6 +25,7 @@ class Picture(object):
         self.config = config
         self._is_bw = None
         self._number = None
+        self._version = None
 
     def read_metadata(self):
         try:
@@ -30,11 +34,14 @@ class Picture(object):
             datetime_original = exif["Exif.Photo.DateTimeOriginal"]
             self.date = datetime.datetime.strptime(datetime_original,
                                                    "%Y:%m:%d %H:%M:%S")
+
             self.camera = exif["Exif.Image.Model"]
             if exif.has_tag('Exif.Photo.LensModel'):
                 self.lens = exif['Exif.Photo.LensModel']
-            elif exif.has_tag('Exif.Canon.LensModel'):
+            elif exif.has_tag('Exif.Canon.LensModel') and exif['Exif.Canon.LensModel'] != "":
                 self.lens = exif['Exif.Canon.LensModel']
+            elif exif.has_tag('Exif.CanonCs.LensType'):
+                self.lens = LENS_TYPES[exif['Exif.CanonCs.LensType']]
             elif exif.has_tag("Exif.CanonCs.Lens"):
                 (max_focal, min_focal, div) = [int(el) for el in exif['Exif.CanonCs.Lens'].split()]
                 self.lens = "%s-%smm"%(int(min_focal/div), int(max_focal/div))
@@ -55,28 +62,30 @@ class Picture(object):
             logger.error( "ERR: file %s does not have valid EXIF data" % self.path.name)
             raise Exception("File with unrecognizable metadata.")
 
+    def _parse_filename(self):
+        try:
+            (self._number, bw, self._version) = self.expr.findall(self.path.name.lower())[0]
+            self._is_bw = ('-bw' in bw)
+        except:
+            raise Exception("Bad format for file %s" % self.path)
+
     @property
     def number(self):
         if self._number is None:
-            try:
-                (self._number, bw) = self.expr.findall(self.path.name.lower())[0]
-                return self._number
-            except:
-                raise Exception("Bad format for file %s" % self.path)
-        else:
-            return self._number
+            self._parse_filename()
+        return self._number
 
     @property
     def is_bw(self):
         if self._is_bw is None:
-            try:
-                (number, bw) = self.expr.findall(self.path.name.lower())[0]
-                self._is_bw = (bw == '-bw')
-                return self._is_bw
-            except:
-                raise Exception("Bad format for file %s"%self.path)
-        else:
-            return self._is_bw
+            self._parse_filename()
+        return self._is_bw
+
+    @property
+    def version(self):
+        if self._version is None:
+            self._parse_filename()
+        return self._version
 
     @property
     def imported_path(self):
