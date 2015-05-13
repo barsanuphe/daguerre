@@ -18,16 +18,7 @@ from daguerre.library import *
 CONFIG_FILE = "daguerre.yaml"
 
 def main():
-    logger.info( "# D A G U E R R E #\n" )
-
-    # TODO with Library(CONFIG_FILE) as l: ...
-    l = Library(CONFIG_FILE)
-
-    logger.info( "Directory:   %s" % l.config_file.directory )
-
-    logger.debug( "Lenses: %s" % l.config_file.lenses)
-    logger.debug( "Cameras: %s" % l.config_file.cameras)
-    logger.debug( "Mount root: %s" % l.config_file.mount_root)
+    logger.info( "\n# D A G U E R R E #\n" )
 
     parser = argparse.ArgumentParser(description='Daguerre.\nA script '
                                      'to deal with pictures.')
@@ -105,20 +96,26 @@ def main():
     args = parser.parse_args()
     logger.debug(args)
 
-    if args.import_cards is not None:
-        l.import_from_cards(args.import_cards)
-        os.sync()
-        logger.info( "Done, card can be removed.")
-        notify_this("Daguerre has finished importing pictures,"
-                    "it is safe to remove the CF card.")
-    if args.refresh_files is not None:
-        print("refresh")
-        l.refresh()
-    if args.clean_raw is not None:
-        try:
-            l.remove_single_raw_files(args.clean_raw)
-        except AssertionError as err:
-            print("Subdirectory %s does not exist." % args.clean_raw)
+    with Library(CONFIG_FILE) as l:
+        logger.debug( "Directory: %s" % l.config_file.directory )
+        logger.debug( "Lenses: %s" % l.config_file.lenses)
+        logger.debug( "Cameras: %s" % l.config_file.cameras)
+        logger.debug( "Mount root: %s" % l.config_file.mount_root)
+
+        if args.import_cards is not None:
+            l.import_from_cards(args.import_cards)
+            os.sync()
+            logger.info( "Done, card can be removed.")
+            notify_this("Daguerre has finished importing pictures,"
+                        "it is safe to remove the CF card.")
+        if args.refresh_files is not None:
+            print("refresh")
+            l.refresh()
+        if args.clean_raw is not None:
+            try:
+                l.remove_single_raw_files(args.clean_raw)
+            except AssertionError as err:
+                print("Subdirectory %s does not exist." % args.clean_raw)
 
 
 if __name__=="__main__":

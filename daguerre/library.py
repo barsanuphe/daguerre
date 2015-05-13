@@ -13,7 +13,15 @@ from daguerre.movie import Movie
 class Library(object):
     def __init__(self, config_file):
         self.config_file = ConfigFile("daguerre", config_file)
+
+    def __enter__(self):
         self.config_file.parse()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None:
+            print("\nGot interrupted. Trying to clean up.")
+            #TODO
 
     def import_from_cards(self, cards=["all"]):
         all_mounted_cards = [Path(self.config_file.mount_root, el)
