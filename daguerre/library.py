@@ -154,7 +154,7 @@ class Library(object):
             else:
                 print("Nothing was done.")
 
-    def sync(self, directory):
+    def sync(self, directory, public_only=False):
         print("Syncing with smugmug")
         if directory == "all":
             sync_directories =[p for p in self.config_file.directory.iterdir() if p.is_dir()]
@@ -168,7 +168,7 @@ class Library(object):
         s.login()
         for directory_to_sync in sync_directories:
             s.sync(directory_to_sync,
-                   "%s/%s" % (self.config_file.smugmug["private_folder"],
-                              directory_to_sync.name))
+                   directory_to_sync.name,
+                   public_only)
         print("Synced with Smugmug in %.3fs."%( (time.perf_counter() - start)))
 

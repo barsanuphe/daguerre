@@ -39,7 +39,7 @@ def main():
                               help='Toggle encryption on the configuration '
                                    'file.')
 
-    group_projects = parser.add_argument_group('Operations', 'Actions.')
+    group_projects = parser.add_argument_group('Operations', 'Import.')
     group_projects.add_argument('-i',
                                 '--import',
                                 dest='import_cards',
@@ -47,59 +47,62 @@ def main():
                                 nargs="+",
                                 metavar="CARD_NAME",
                                 help='import picture from specific cards, or "all".')
-    group_projects.add_argument('-r',
-                                '--refresh',
-                                dest='refresh_files',
-                                action='store',
-                                nargs="*",
-                                metavar="DIRECTORY",
-                                help='refresh filenames')
-    group_projects.add_argument('-x',
-                                '--export',
-                                dest='export_files',
-                                action='store',
-                                nargs=1,
-                                metavar="EXPORT_DIRECTORY",
-                                help='export pictures to a directory.')
-    group_projects.add_argument('-t',
-                                '--tags',
-                                dest='tags',
-                                action='store',
-                                nargs="*",
-                                metavar="TAG",
-                                help='filter tags when exporting.')
-    group_projects.add_argument('--from',
-                                dest='from',
-                                action='store',
-                                nargs=1,
-                                metavar="FROM_DATE",
-                                help='filter by date when exporting.')
-    group_projects.add_argument('--to',
-                                dest='to',
-                                action='store',
-                                nargs=1,
-                                metavar="TO_DATE",
-                                help='filter by date when exporting.')
-    group_projects.add_argument('--clean-raw',
-                                dest='clean_raw',
-                                action='store',
-                                nargs="?",
-                                const="all",
-                                metavar="DIRECTORY",
-                                help='Clean up single CR2 files (in a directory).')
-    group_projects.add_argument('--sync-with-smugmug',
-                                dest='sync',
-                                action='store',
-                                nargs="?",
-                                const="all",
-                                metavar="DIRECTORY",
-                                help='Sync photos with smugmug account.')
-    # group_projects.add_argument('-b',
-                                # '--backup',
-                                # dest='backup',
-                                # action='store_true',
-                                # default=False,
-                                # help='backup selected repositories.')
+
+    group_maintenance = parser.add_argument_group('Operations', 'Maintenance.')
+    group_maintenance.add_argument('-r',
+                                   '--refresh',
+                                   dest='refresh_files',
+                                   action='store',
+                                   nargs="*",
+                                   metavar="DIRECTORY",
+                                   help='refresh filenames')
+    group_maintenance.add_argument('--clean-raw',
+                                   dest='clean_raw',
+                                   action='store',
+                                   nargs="?",
+                                   const="all",
+                                   metavar="DIRECTORY",
+                                   help='Clean up single CR2 files (in a directory).')
+    group_export = parser.add_argument_group('Operations', 'Export.')
+    group_export.add_argument('-x',
+                              '--export',
+                              dest='export_files',
+                              action='store',
+                              nargs=1,
+                              metavar="EXPORT_DIRECTORY",
+                              help='export pictures to a directory.')
+    group_export.add_argument('-t',
+                              '--tags',
+                              dest='tags',
+                              action='store',
+                              nargs="*",
+                              metavar="TAG",
+                              help='filter tags when exporting.')
+    group_export.add_argument('--from',
+                              dest='from',
+                              action='store',
+                              nargs=1,
+                              metavar="FROM_DATE",
+                              help='filter by date when exporting.')
+    group_export.add_argument('--to',
+                              dest='to',
+                              action='store',
+                              nargs=1,
+                              metavar="TO_DATE",
+                              help='filter by date when exporting.')
+    group_export.add_argument('-s',
+                              '--sync-with-smugmug',
+                              dest='sync',
+                              action='store',
+                              nargs="?",
+                              const="all",
+                              metavar="DIRECTORY",
+                              help='Sync photos with smugmug account.')
+    group_export.add_argument('--public',
+                              dest='public_only',
+                              action='store_true',
+                              default=False,
+                              help='Only export pictures tagged as public.')
 
     args = parser.parse_args()
     logger.debug(args)
@@ -107,11 +110,6 @@ def main():
     #TODO if args.config is not None...
 
     with Library(CONFIG_FILE) as l:
-        logger.debug( "Directory: %s" % l.config_file.directory )
-        logger.debug( "Lenses: %s" % l.config_file.lenses)
-        logger.debug( "Cameras: %s" % l.config_file.cameras)
-        logger.debug( "Mount root: %s" % l.config_file.mount_root)
-
         if args.import_cards is not None:
             l.import_from_cards(args.import_cards)
             os.sync()
@@ -128,7 +126,7 @@ def main():
                 print("Subdirectory %s does not exist." % args.clean_raw)
         if args.sync is not None:
             try:
-                l.sync(args.sync)
+                l.sync(args.sync, args.public_only)
             except AssertionError as err:
                 print("Subdirectory %s does not exist." % args.sync)
 

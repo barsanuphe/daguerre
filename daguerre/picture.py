@@ -30,7 +30,6 @@ class Picture(object):
     def read_metadata(self):
         try:
             exif = GExiv2.Metadata(self.path.as_posix())
-
             datetime_original = exif["Exif.Photo.DateTimeOriginal"]
             self.date = datetime.datetime.strptime(datetime_original,
                                                    "%Y:%m:%d %H:%M:%S")
