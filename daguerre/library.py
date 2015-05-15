@@ -6,6 +6,7 @@ import multiprocessing
 from daguerre.checks import *
 from daguerre.helpers import *
 from daguerre.logger import *
+from daguerre.smugmugsync import SmugMugManager
 from daguerre.config import ConfigFile
 from daguerre.picture import Picture
 from daguerre.movie import Movie
@@ -72,6 +73,7 @@ class Library(object):
             pbar.finish()
             logger.debug("MOVs dealt with in %.3fs."%( (time.perf_counter() - start)))
 
+        #TODO use run_in_parallel
         if jpgs_to_process != []:
             cpt = 0
             start = time.perf_counter()
@@ -151,3 +153,22 @@ class Library(object):
                     os.remove(o.path.as_posix())
             else:
                 print("Nothing was done.")
+
+    def sync(self, directory):
+        print("Syncing with smugmug")
+        if directory == "all":
+            sync_directories =[p for p in self.config_file.directory.iterdir() if p.is_dir()]
+        else:
+            directory = Path(self.config_file.directory, directory)
+            assert directory.exists() and directory.is_dir()
+            sync_directories = [Path(self.config_file.directory, directory)]
+
+        start = time.perf_counter()
+        s = SmugMugManager(self.config_file)
+        s.login()
+        for directory_to_sync in sync_directories:
+            s.sync(directory_to_sync,
+                   "%s/%s" % (self.config_file.smugmug["private_folder"],
+                              directory_to_sync.name))
+        print("Synced with Smugmug in %.3fs."%( (time.perf_counter() - start)))
+

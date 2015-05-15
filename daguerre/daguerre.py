@@ -13,6 +13,7 @@ from daguerre.logger import *
 from daguerre.picture import *
 from daguerre.movie import *
 from daguerre.library import *
+from daguerre.smugmugsync import *
 
 # default config file name
 CONFIG_FILE = "daguerre.yaml"
@@ -86,6 +87,13 @@ def main():
                                 const="all",
                                 metavar="DIRECTORY",
                                 help='Clean up single CR2 files (in a directory).')
+    group_projects.add_argument('--sync-with-smugmug',
+                                dest='sync',
+                                action='store',
+                                nargs="?",
+                                const="all",
+                                metavar="DIRECTORY",
+                                help='Sync photos with smugmug account.')
     # group_projects.add_argument('-b',
                                 # '--backup',
                                 # dest='backup',
@@ -95,6 +103,8 @@ def main():
 
     args = parser.parse_args()
     logger.debug(args)
+
+    #TODO if args.config is not None...
 
     with Library(CONFIG_FILE) as l:
         logger.debug( "Directory: %s" % l.config_file.directory )
@@ -116,7 +126,13 @@ def main():
                 l.remove_single_raw_files(args.clean_raw)
             except AssertionError as err:
                 print("Subdirectory %s does not exist." % args.clean_raw)
+        if args.sync is not None:
+            try:
+                l.sync(args.sync)
+            except AssertionError as err:
+                print("Subdirectory %s does not exist." % args.sync)
 
 
 if __name__=="__main__":
     main()
+

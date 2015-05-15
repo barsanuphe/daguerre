@@ -42,6 +42,10 @@ class ConfigFile(object):
     def cameras(self):
         return self.all_config["cameras"]
 
+    @property
+    def smugmug(self):
+        return self.all_config.get("smugmug", None)
+
     def encrypt(self):
         pass
 
