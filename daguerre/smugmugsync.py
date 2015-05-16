@@ -338,7 +338,7 @@ class SmugMugManager(SyncManager):
             exif = GExiv2.Metadata(path.as_posix())
             # read exif tags
             if exif.has_tag('Iptc.Application2.Keywords'):
-                is_public = (self.public_tag in exif['Iptc.Application2.Keywords'])
+                is_public = (self.public_tag in exif.get_tag_multiple('Iptc.Application2.Keywords'))
             else:
                 is_public = False
         return PictureToSync(path.name, md5, full_path=path, public=is_public)
