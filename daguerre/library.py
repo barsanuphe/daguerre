@@ -11,6 +11,7 @@ from daguerre.config import ConfigFile
 from daguerre.picture import Picture
 from daguerre.movie import Movie
 
+
 class Library(object):
     def __init__(self, config_file):
         self.config_file = ConfigFile("daguerre", config_file)
@@ -22,7 +23,7 @@ class Library(object):
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is not None:
             print("\nGot interrupted. Trying to clean up.")
-            #TODO
+            # TODO
 
     def import_from_cards(self, cards=["all"]):
         all_mounted_cards = [Path(self.config_file.mount_root, el)
@@ -33,10 +34,10 @@ class Library(object):
         else:
             # intersection cards/all_mounted_cards
             cards_to_import = [Path(self.config_file.mount_root, el)
-                     for el in cards
-                     if Path(self.config_file.mount_root, el) in all_mounted_cards]
-        if cards_to_import == []:
-            logger.warning("Card %s not found."% ', '.join(cards))
+                               for el in cards
+                               if Path(self.config_file.mount_root, el) in all_mounted_cards]
+        if not cards_to_import:
+            logger.warning("Card %s not found." % ', '.join(cards))
         # actual import
         for card in cards_to_import:
             self.import_from_card(card)
@@ -47,47 +48,47 @@ class Library(object):
         new_pics = [x for x in card_path.rglob("*") if x.suffix.lower() in ['.jpg', '.cr2']]
         new_movs = [x for x in card_path.rglob("*") if x.suffix.lower() in ['.mov']]
 
-        if new_pics != []:
+        if new_pics:
             start = time.perf_counter()
             logger.debug("Dealing with JPG/CR2 files...")
-            pbar = generate_pbar("Archiving JPG/CR2 files: ", len(new_pics)).start()
+            progress_bar = generate_progress_bar("Archiving JPG/CR2 files: ", len(new_pics)).start()
             for (i, pic_filename) in enumerate(new_pics):
                 pic = Picture(pic_filename, self.config_file)
                 pic.read_metadata()
                 pic.to_dir()
                 if pic_filename.suffix.lower() == ".jpg":
                     jpgs_to_process.append(pic)
-                pbar.update(i)
-            pbar.finish()
-            logger.debug("Pictures dealt with in %.3fs."%( (time.perf_counter() - start)))
+                progress_bar.update(i)
+            progress_bar.finish()
+            logger.debug("Pictures dealt with in %.3fs." % (time.perf_counter() - start))
 
-        if new_movs != []:
+        if new_movs:
             start = time.perf_counter()
             logger.debug("Dealing with MOVs...")
-            pbar = generate_pbar("Archiving MOV files: ", len(new_movs)).start()
+            progress_bar = generate_progress_bar("Archiving MOV files: ", len(new_movs)).start()
             for (i, mov_filename) in enumerate(new_movs):
                 mov = Movie(mov_filename, self.config_file)
                 mov.read_metadata()
                 mov.to_dir()
-                pbar.update(i)
-            pbar.finish()
-            logger.debug("MOVs dealt with in %.3fs."%( (time.perf_counter() - start)))
+                progress_bar.update(i)
+            progress_bar.finish()
+            logger.debug("MOVs dealt with in %.3fs." % (time.perf_counter() - start))
 
-        #TODO use run_in_parallel
-        if jpgs_to_process != []:
+        # TODO use run_in_parallel
+        if jpgs_to_process:
             cpt = 0
             start = time.perf_counter()
-            pbar = generate_pbar("Processing JPG files: ", len(jpgs_to_process)).start()
-            with concurrent.futures.ThreadPoolExecutor(max_workers = multiprocessing.cpu_count()) as executor:
+            progress_bar = generate_progress_bar("Processing JPG files: ", len(jpgs_to_process)).start()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
                 future_jpg = {executor.submit(self._post_processing_jpg, pic): pic for pic in jpgs_to_process}
-                for future in concurrent.futures.as_completed(future_jpg):
-                    cpt +=1
-                    pbar.update(cpt)
-            pbar.finish()
-            logger.debug("JPGs dealt with in %.3fs."%( (time.perf_counter() - start)))
+                for _ in concurrent.futures.as_completed(future_jpg):
+                    cpt += 1
+                    progress_bar.update(cpt)
+            progress_bar.finish()
+            logger.debug("JPGs dealt with in %.3fs." % (time.perf_counter() - start))
 
-
-    def _post_processing_jpg(self, picture):
+    @staticmethod
+    def _post_processing_jpg(picture):
         picture.losslessly_rotate()
         picture.convert_to_bw()
 
@@ -123,18 +124,18 @@ class Library(object):
                 all_file_groups[(p.date, p.number)] = [p]
 
         orphans = []
-        for (t,i) in all_file_groups:
-            group = all_file_groups[(t,i)]
+        for (t, i) in all_file_groups:
+            group = all_file_groups[(t, i)]
             cr2s = [p for p in group if p.path.suffix == '.cr2']
             jpgs = [p for p in group if p.path.suffix == '.jpg']
 
-            if cr2s == []:
+            if not cr2s:
                 pass
-                # print("No raw file for %s"%jpgs[0])
+                # print("No raw file for %s" % jpgs[0])
             if jpgs == [] and cr2s != []:
                 orphans.extend(cr2s)
 
-        if orphans != []:
+        if orphans:
             print("Orphans:")
             orphans.sort(key=lambda p: p.path.name)
             for o in orphans:
@@ -145,11 +146,11 @@ class Library(object):
 
     def remove_single_raw_files(self, directory=None):
         orphans = self.list_single_raw_files(directory)
-        if orphans != []:
+        if orphans:
             rep = input("\n!! Remove files? (y/N) ")
             if rep.lower() == "y":
                 for o in orphans:
-                    print(" + Removing %s..."%o.path.name)
+                    print(" + Removing %s..." % o.path.name)
                     os.remove(o.path.as_posix())
             else:
                 print("Nothing was done.")
@@ -157,7 +158,7 @@ class Library(object):
     def sync(self, directory, public_only=False):
         print("Syncing with smugmug")
         if directory == "all":
-            sync_directories =[p for p in self.config_file.directory.iterdir() if p.is_dir()]
+            sync_directories = [p for p in self.config_file.directory.iterdir() if p.is_dir()]
         else:
             directory = Path(self.config_file.directory, directory)
             assert directory.exists() and directory.is_dir()
@@ -167,8 +168,5 @@ class Library(object):
         s = SmugMugManager(self.config_file)
         s.login()
         for directory_to_sync in sync_directories:
-            s.sync(directory_to_sync,
-                   directory_to_sync.name,
-                   public_only)
-        print("Synced with Smugmug in %.3fs."%( (time.perf_counter() - start)))
-
+            s.sync(directory_to_sync, directory_to_sync.name, public_only)
+        print("Synced with Smugmug in %.3fs." % (time.perf_counter() - start))

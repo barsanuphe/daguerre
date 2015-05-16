@@ -7,6 +7,7 @@ import getpass
 import yaml
 import xdg.BaseDirectory
 
+
 class ConfigFile(object):
     def __init__(self, program, filename):
         self.filename = filename
@@ -20,10 +21,10 @@ class ConfigFile(object):
             self.all_config = yaml.load(open(self.configuration_file.as_posix(), 'r'))
             # quick check everything needed is here
             try:
-                assert "config"     in self.all_config
-                assert "lenses"     in self.all_config
-                assert "cameras"    in self.all_config
-                assert "directory"  in self.all_config["config"]
+                assert "config" in self.all_config
+                assert "lenses" in self.all_config
+                assert "cameras" in self.all_config
+                assert "directory" in self.all_config["config"]
             except Exception as err:
                 print("Missing config option: ", err)
                 raise Exception("Invalid configuration file!")
@@ -51,4 +52,3 @@ class ConfigFile(object):
 
     def decrypt(self):
         pass
-

@@ -7,11 +7,10 @@ import shutil
 from daguerre.checks import *
 from daguerre.logger import *
 
-
 IMG_REGEXP = re.compile(r"[\w*]_(\d{4})(-bw\d*)?(-\d*)?[.jpg|.cr2|.mov]")
 
 # http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html#LensType
-LENS_TYPES = { "254":"EF100mm f/2.8L Macro IS USM"}
+LENS_TYPES = {"254": "EF100mm f/2.8L Macro IS USM"}
 
 
 class Picture(object):
@@ -43,22 +42,22 @@ class Picture(object):
                 self.lens = LENS_TYPES[exif['Exif.CanonCs.LensType']]
             elif exif.has_tag("Exif.CanonCs.Lens"):
                 (max_focal, min_focal, div) = [int(el) for el in exif['Exif.CanonCs.Lens'].split()]
-                self.lens = "%s-%smm"%(int(min_focal/div), int(max_focal/div))
-            assert self.lens is not None # out of ideas if lens is still None
+                self.lens = "%s-%smm" % (int(min_focal / div), int(max_focal / div))
+            assert self.lens is not None  # out of ideas if lens is still None
 
             if self.camera in self.config.cameras:
                 self.camera = self.config.cameras[self.camera]
             else:
-                raise Exception("Could not identify camera %s"%self.camera)
+                raise Exception("Could not identify camera %s" % self.camera)
 
             if self.lens in self.config.lenses:
                 self.lens = self.config.lenses[self.lens]
             else:
-                raise Exception("Could not identify lens %s"%self.lens)
+                raise Exception("Could not identify lens %s" % self.lens)
 
         except Exception as err:
-            logger.error( err )
-            logger.error( "ERR: file %s does not have valid EXIF data" % self.path.name)
+            logger.error(err)
+            logger.error("ERR: file %s does not have valid EXIF data" % self.path.name)
             raise Exception("File with unrecognizable metadata.")
 
     def _parse_filename(self):
@@ -114,7 +113,7 @@ class Picture(object):
         archive_dir = Path(self.config.directory,
                            "%s-%02d" % (self.date.year, self.date.month))
         if not archive_dir.exists():
-            logger.debug( "Creating %s" % archive_dir )
+            logger.debug("Creating %s" % archive_dir)
             archive_dir.mkdir(parents=True)
         return archive_dir
 
@@ -123,16 +122,16 @@ class Picture(object):
         shutil.move(self.path.as_posix(), self.imported_path.as_posix())
 
     def losslessly_rotate(self):
-        #""" rotates losslessly if the photo is in portrait mode so that SmugMug is happy """
+        """ rotates losslessly if the photo is in portrait mode so that SmugMug is happy """
         if self.imported_path.suffix == ".jpg":
             subprocess.check_call(["jhead", "-autorot", self.imported_path.as_posix()],
-                              stdout=subprocess.DEVNULL)
+                                  stdout=subprocess.DEVNULL)
 
     def convert_to_bw(self):
         """ convert to jpg + add to active_images """
         if not self.is_bw:
             jpg_bw_filename = self.imported_path.as_posix().replace(".jpg", "-bw.jpg")
-            logger.debug( "\tConverting to B&W jpg" )
+            logger.debug("\tConverting to B&W jpg")
             im = Image.open(self.imported_path.as_posix())
             exif = im.info['exif']
             enhancer = ImageEnhance.Color(im)
@@ -140,10 +139,10 @@ class Picture(object):
             enhancer = ImageEnhance.Contrast(bw)
             enhancer.enhance(1.1).save(jpg_bw_filename,
                                        'JPEG',
-                                       exif = exif,
-                                       quality = 95,
-                                       optimize = True,
-                                       subsampling = "4:2:2" )
+                                       exif=exif,
+                                       quality=95,
+                                       optimize=True,
+                                       subsampling="4:2:2")
 
     def __str__(self):
         return self.path.name

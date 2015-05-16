@@ -1,11 +1,15 @@
-from daguerre.checks import *
 from daguerre.picture import *
 
-class Movie(Picture):
 
+class Movie(Picture):
     def read_metadata(self):
         try:
-            rep = subprocess.check_output(["/usr/bin/vendor_perl/exiftool","-s3","-DateTimeOriginal","-Model","-LensModel", self.path.as_posix()])
+            rep = subprocess.check_output(["/usr/bin/vendor_perl/exiftool",
+                                           "-s3",
+                                           "-DateTimeOriginal",
+                                           "-Model",
+                                           "-LensModel",
+                                           self.path.as_posix()])
             infos = [el.strip() for el in rep.decode("utf-8").split("\n")]
             self.date = datetime.datetime.strptime(infos[0], "%Y:%m:%d %H:%M:%S")
             self.camera = infos[1]
@@ -22,7 +26,6 @@ class Movie(Picture):
                 raise Exception("Could not identify lens %s" % self.lens)
 
         except Exception as err:
-            logger.error( err )
-            logger.error( "ERR: file %s does not have valid metadata" % self.filename)
+            logger.error(err)
+            logger.error("ERR: file %s does not have valid metadata" % self.path)
             raise Exception("File with unrecognizable metadata.")
-

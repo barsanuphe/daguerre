@@ -2,11 +2,7 @@
 A script to deal with pictures.
 """
 
-from setuptools import setup, find_packages
-# To use a consistent encoding
-from codecs import open
-from os import path
-
+from setuptools import setup
 
 setup(
     name='daguerre',
@@ -28,19 +24,8 @@ setup(
     keywords='daguerre pictures exif',
     packages=['daguerre'],
 
-    # note: attic has unresolved dependancies (blosc) for now
-    install_requires=['pyyaml', 'notify2', 'progressbar'],# ,'PIL', 'xdg'],
+    install_requires=['pyyaml', 'notify2', 'progressbar', 'rauth'],  # ,'PIL', 'xdg'],
 
-
-    # If there are data files included in your packages that need to be
-    # installed, specify them here.
-    #package_data={
-        #'sample': ['package_data.dat'],
-    #},
-
-    ## To provide executable scripts, use entry points in preference to the
-    ## "scripts" keyword. Entry points provide cross-platform support and allow
-    ## pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
             'daguerre=daguerre:main',

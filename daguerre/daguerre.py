@@ -1,28 +1,19 @@
 # -*- coding: utf-8 -*-
 
-#so that parsing this with python2 does not raise SyntaxError
-from __future__ import print_function
-
-import os, subprocess, shutil, sys, datetime
-import time
 import argparse
 
-from daguerre.checks import *
-from daguerre.helpers import *
-from daguerre.logger import *
-from daguerre.picture import *
-from daguerre.movie import *
 from daguerre.library import *
 from daguerre.smugmugsync import *
 
 # default config file name
 CONFIG_FILE = "daguerre.yaml"
 
+
 def main():
-    logger.info( "\n# D A G U E R R E #\n" )
+    logger.info("\n# D A G U E R R E #\n")
 
     parser = argparse.ArgumentParser(description='Daguerre.\nA script '
-                                     'to deal with pictures.')
+                                                 'to deal with pictures.')
 
     group_config = parser.add_argument_group('Configuration',
                                              'Manage configuration files.')
@@ -107,13 +98,13 @@ def main():
     args = parser.parse_args()
     logger.debug(args)
 
-    #TODO if args.config is not None...
+    # TODO if args.config is not None...
 
     with Library(CONFIG_FILE) as l:
         if args.import_cards is not None:
             l.import_from_cards(args.import_cards)
             os.sync()
-            logger.info( "Done, card can be removed.")
+            logger.info("Done, card can be removed.")
             notify_this("Daguerre has finished importing pictures,"
                         "it is safe to remove the CF card.")
         if args.refresh_files is not None:
@@ -122,15 +113,16 @@ def main():
         if args.clean_raw is not None:
             try:
                 l.remove_single_raw_files(args.clean_raw)
-            except AssertionError as err:
+            except AssertionError:
                 print("Subdirectory %s does not exist." % args.clean_raw)
         if args.sync is not None:
             try:
                 l.sync(args.sync, args.public_only)
-            except AssertionError as err:
+            except AssertionError:
                 print("Subdirectory %s does not exist." % args.sync)
+            finally:
+                notify_this('Daguerre has finished syncing with Smugmug.')
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
-

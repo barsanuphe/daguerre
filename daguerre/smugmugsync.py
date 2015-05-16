@@ -2,13 +2,9 @@ from rauth import OAuth1Service, OAuth1Session
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 import json
-import time
 import hashlib
-import os
-import sys
 import mimetypes
 from pathlib import Path
-
 
 from daguerre.checks import *
 from daguerre.logger import *
@@ -26,8 +22,10 @@ UPLOAD_URL = "http://upload.smugmug.com/"
 API_ORIGIN = 'https://api.smugmug.com'
 MAX_TRIES = 5
 
+
 def pretty_json(data):
     return json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
+
 
 def add_auth_params(auth_url, access=None, permissions=None):
     if access is None and permissions is None:
@@ -51,28 +49,33 @@ class PictureToSync(object):
 
     def __eq__(self, other):
         return (self.filename == other.filename) and (self.md5 == other.md5)
-    def __str__(self):
-        return "%s %s"%(self.filename, self.md5)
 
+    def __str__(self):
+        return "%s %s" % (self.filename, self.md5)
 
 
 class SyncManager(object):
     def __init__(self, config):
         self.config = config
         pass
-    #TODO enter, exit
+        # TODO enter, exit
+
 
 class SmugMugManager(SyncManager):
     def __init__(self, config):
         super().__init__(config)
         self.api_key = self.config.smugmug["api_key"]
         self.api_key_secret = self.config.smugmug["api_key_secret"]
+        self.access_token = ""
+        self.access_token_secret = ""
         self.public_tag = self.config.smugmug["public_tag"]
         self.public_node = None
         self.private_node = None
         self.public_albums = []
         self.private_albums = []
         self.known_smugmug_paths = {}
+        self.root_node = None
+        self.session = None
 
     def get_tokens(self):
         if "access_token" not in self.config.smugmug:
@@ -89,7 +92,8 @@ class SmugMugManager(SyncManager):
             sys.stdout.write('Enter the six-digit code: ')
             sys.stdout.flush()
             verifier = sys.stdin.readline().strip()
-            self.access_token, self.access_token_secret = service.get_access_token(rt, rts, params={'oauth_verifier': verifier})
+            self.access_token, self.access_token_secret = service.get_access_token(rt, rts,
+                                                                                   params={'oauth_verifier': verifier})
             # display so that user can copy them in the config file
             logger.info('Add this to your daguerre yaml file, in the smugmug part:')
             logger.info('  access_token: %s' % self.access_token)
@@ -113,7 +117,7 @@ class SmugMugManager(SyncManager):
         elif json_answer["Code"] == STATUS_RETRY and tries < MAX_TRIES:
             logger.debug("Retrying...")
             time.sleep(1)
-            return self._get(url, headers, params, tries=tries+1)
+            return self._get(url, headers, params, tries=tries + 1)
         else:
             return False, json_answer["Response"]
 
@@ -130,7 +134,7 @@ class SmugMugManager(SyncManager):
             elif json_answer["Code"] == STATUS_RETRY and tries < MAX_TRIES:
                 print("Retrying...")
                 time.sleep(1)
-                return self._post(url, headers, data, tries=tries+1)
+                return self._post(url, headers, data, tries=tries + 1)
             else:
                 return False, json_answer["Response"]
         elif "stat" in json_answer:
@@ -153,7 +157,7 @@ class SmugMugManager(SyncManager):
         elif json_answer["Code"] == STATUS_RETRY and tries < MAX_TRIES:
             logger.debug("Retrying...")
             time.sleep(1)
-            return self._delete(url, headers, params, tries=tries+1)
+            return self._delete(uri, headers, params, tries=tries + 1)
         else:
             return False, json_answer["Response"]
 
@@ -166,9 +170,9 @@ class SmugMugManager(SyncManager):
         success, response = self._get(API_ORIGIN + '/api/v2!authuser')
         if success:
             user_info = response["User"]
-            logger.info("Logged in as %s (%s %s)."%(user_info["Name"],
-                                              user_info["FirstName"],
-                                              user_info["LastName"]))
+            logger.info("Logged in as %s (%s %s)." % (user_info["Name"],
+                                                      user_info["FirstName"],
+                                                      user_info["LastName"]))
             logger.info("Domain: %s" % user_info["Domain"])
             logger.info("Image Count: %s" % user_info["ImageCount"])
 
@@ -177,25 +181,25 @@ class SmugMugManager(SyncManager):
             raise Exception("Could not authenticate user!")
 
     def _create_album(self, album_name, parent_node, public=False, description=""):
-        logger.info("Creating album %s"%album_name)
+        logger.info("Creating album %s" % album_name)
         data = {
-                "Type": "Album",
-                "Name": album_name,
-                "UrlName": album_name.capitalize(),
-                "Description": description,
-                "SortMethod": "Name",
-                "SortDirection": "Descending",
-                }
+            "Type": "Album",
+            "Name": album_name,
+            "UrlName": album_name.capitalize(),
+            "Description": description,
+            "SortMethod": "Name",
+            "SortDirection": "Descending",
+        }
         if public:
             data["Privacy"] = "Public"
         else:
             data["Privacy"] = "Private"
 
-        headers = { 'content-type': 'application/json'}
+        headers = {'content-type': 'application/json'}
         success, response = self._post(API_ORIGIN + parent_node + "!children",
                                        headers=headers,
                                        data=json.dumps(data))
-        #print(pretty_json(response))
+        # print(pretty_json(response))
         return success, response
 
     def create_new_album(self, smugmug_path, public=False, description=""):
@@ -207,11 +211,12 @@ class SmugMugManager(SyncManager):
 
         # find parent node
         smugmug_node = self.root_node
+        smugmug_albumuri = ""
         for node_name in node_hierarchy:
             smugmug_node, smugmug_albumuri = self._find_child_node(smugmug_node, node_name)
 
         # verify it's a folder
-        #TODO do better, it could also be a page
+        # TODO do better, it could also be a page
         assert smugmug_node != ""
         assert smugmug_albumuri == ""
 
@@ -220,7 +225,7 @@ class SmugMugManager(SyncManager):
         try:
             assert already_exists_node == ""
             assert already_exists_albumuri == ""
-        except:
+        except AssertionError:
             logger.warning("Album already exists!")
             if already_exists_albumuri != "":
                 self.known_smugmug_paths[smugmug_path] = (already_exists_node,
@@ -244,7 +249,7 @@ class SmugMugManager(SyncManager):
                        'X-Smug-FileName': local_path.name,
                        'Content-MD5': hashlib.md5(data).hexdigest(),
                        'Content-Length': str(len(data))
-                      }
+                       }
             success, response = self._post(UPLOAD_URL,
                                            headers=headers,
                                            data=f)
@@ -262,14 +267,14 @@ class SmugMugManager(SyncManager):
         return self.upload_to_album(local_path, smugmug_path)
 
     def _find_child_node(self, root_node, node_name, count=200):
-        logger.debug("Trying to find node %s"%node_name)
-        parameters = {"_filter": "Name,Uri,Type", "_filteruri": "Album", "count": count, "start": 1} #
+        logger.debug("Trying to find node %s" % node_name)
+        parameters = {"_filter": "Name,Uri,Type", "_filteruri": "Album", "count": count, "start": 1}  #
         offset = 1
-        total = 10 # not known yet, value not important other than != 0
-        while offset != total+1:
+        total = 10  # not known yet, value not important other than != 0
+        while offset != total + 1:
             success, response = self._get(API_ORIGIN + root_node + "!children",
                                           params=parameters)
-            #print(pretty_json(response))
+            # print(pretty_json(response))
             if success and "Node" in response:
                 nodes = response["Node"]
                 for node in nodes:
@@ -292,6 +297,7 @@ class SmugMugManager(SyncManager):
             node_hierarchy = smugmug_path.split("/")
             # find the last node's album uri
             smugmug_node = self.root_node
+            smugmug_albumuri = ""
             for node_name in node_hierarchy:
                 smugmug_node, smugmug_albumuri = self._find_child_node(smugmug_node, node_name)
             assert smugmug_node != ""
@@ -300,24 +306,23 @@ class SmugMugManager(SyncManager):
             self.known_smugmug_paths[smugmug_path] = (smugmug_node, smugmug_albumuri)
             return smugmug_node, smugmug_albumuri
 
-
     def get_album_images(self, smugmug_path, count=200):
         smugmug_node, smugmug_albumuri = self._find_leaf_node(smugmug_path)
         parameters = {
-                        "_filter": "ArchivedMD5, FileName, Uri, Format",
-                        "_filteruri": "Image",
-                        "count": count,
-                        "start":1
-                     }
+            "_filter": "ArchivedMD5, FileName, Uri, Format",
+            "_filteruri": "Image",
+            "count": count,
+            "start": 1
+        }
         offset = 1
-        total = 10 # not known yet, value not important other than != 0
+        total = 10  # not known yet, value not important other than != 0
         all_images = []
-        while offset != total+1:
+        while offset != total + 1:
             success, response = self._get(API_ORIGIN + smugmug_albumuri + "!images",
                                           params=parameters)
             if success:
                 parameters["start"] += count
-                #print(pretty_json(response))
+                # print(pretty_json(response))
                 if "AlbumImage" not in response:
                     break
                 all_images.extend(response["AlbumImage"])
@@ -339,7 +344,7 @@ class SmugMugManager(SyncManager):
 
     def get_local_pictures(self, local_path):
         if not local_path.exists():
-            logger.warning("%s does not exist."%local_path)
+            logger.warning("%s does not exist." % local_path)
             return []
         else:
             start = time.perf_counter()
@@ -347,46 +352,46 @@ class SmugMugManager(SyncManager):
             all_local_pictures = run_in_parallel(self._analyze_local_picture,
                                                  local_pictures,
                                                  "Analyzing JPG files: ")
-            logger.info("JPGs analyzed in %.3fs."%( (time.perf_counter() - start)))
+            logger.info("JPGs analyzed in %.3fs." % (time.perf_counter() - start))
             return all_local_pictures
 
     def compare(self, all_local_pictures, smugmug_path, public=True):
-            all_pictures = [el for el in all_local_pictures if el.is_public == public]
+        all_pictures = [el for el in all_local_pictures if el.is_public == public]
 
-            start = time.perf_counter()
-            all_remote_pictures = []
-            images = self.get_album_images(smugmug_path)
-            for i in images:
-                if i["Format"] == "JPG":
-                    all_remote_pictures.append(PictureToSync(i["FileName"],
-                                                    i["ArchivedMD5"],
-                                                    i["Uris"]["Image"]))
-            logger.info("Retrieved information from SM in %.3fs."%( (time.perf_counter() - start)))
+        start = time.perf_counter()
+        all_remote_pictures = []
+        images = self.get_album_images(smugmug_path)
+        for i in images:
+            if i["Format"] == "JPG":
+                all_remote_pictures.append(PictureToSync(i["FileName"],
+                                                         i["ArchivedMD5"],
+                                                         i["Uris"]["Image"]))
+        logger.info("Retrieved information from SM in %.3fs." % (time.perf_counter() - start))
 
-            remote_to_delete = [p for p in all_remote_pictures
-                                if p not in all_pictures]
-            local_to_upload = [p for p in all_pictures
-                               if p not in all_remote_pictures]
-            #TODO pictures in common between both lists could be replaced
+        remote_to_delete = [p for p in all_remote_pictures
+                            if p not in all_pictures]
+        local_to_upload = [p for p in all_pictures
+                           if p not in all_remote_pictures]
+        # TODO pictures in common between both lists could be replaced
 
-            return local_to_upload, remote_to_delete
+        return local_to_upload, remote_to_delete
 
     def sync(self, local_path, smugmug_path, public_only=False):
         if not local_path.exists():
-            logger.warning("%s does not exist."%local_path)
+            logger.warning("%s does not exist." % local_path)
         else:
-            #TODO: only create gallery if necessary (public pictures this month)
+            # TODO: only create gallery if necessary (public pictures this month)
 
             all_local_pictures = self.get_local_pictures(local_path)
 
-            public_path = "%s/%s"% (self.config.smugmug["public_folder"],
-                                    smugmug_path)
-            logger.info("Syncing public pictures from %s with %s"%(local_path, public_path))
+            public_path = "%s/%s" % (self.config.smugmug["public_folder"],
+                                     smugmug_path)
+            logger.info("Syncing public pictures from %s with %s" % (local_path, public_path))
 
             # check if gallery exists, else create it
             try:
                 self._find_leaf_node(public_path)
-            except AssertionError as err:
+            except AssertionError:
                 self.create_new_album(public_path, public=True)
 
             upload_local, delete_remote = self.compare(all_local_pictures,
@@ -395,26 +400,26 @@ class SmugMugManager(SyncManager):
 
             start = time.perf_counter()
             source_list = [API_ORIGIN + d.uri for d in delete_remote]
-            deletes = run_in_parallel(self._delete,
-                                      source_list,
-                                      "Deleting files: ")
-            logger.info("Deleted pictures from public SM in %.3fs."%( (time.perf_counter() - start)))
+            run_in_parallel(self._delete,
+                            source_list,
+                            "Deleting files: ")
+            logger.info("Deleted pictures from public SM in %.3fs." % (time.perf_counter() - start))
 
             start = time.perf_counter()
             source_list = [(u.full_path, public_path) for u in upload_local]
-            uploads = run_in_parallel(self._upload_to_album_parallel,
-                                      source_list,
-                                      "Uploading files: ")
-            logger.info("Uploaded pictures to public SM in %.3fs."%( (time.perf_counter() - start)))
+            run_in_parallel(self._upload_to_album_parallel,
+                            source_list,
+                            "Uploading files: ")
+            logger.info("Uploaded pictures to public SM in %.3fs." % (time.perf_counter() - start))
 
             if not public_only:
-                private_path = "%s/%s"% (self.config.smugmug["private_folder"],
-                                    smugmug_path)
-                logger.info("Syncing private pictures from %s with %s"%(local_path, private_path))
+                private_path = "%s/%s" % (self.config.smugmug["private_folder"],
+                                          smugmug_path)
+                logger.info("Syncing private pictures from %s with %s" % (local_path, private_path))
                 # check if gallery exists, else create it
                 try:
                     self._find_leaf_node(private_path)
-                except AssertionError as err:
+                except AssertionError:
                     self.create_new_album(private_path, public=False)
 
                 upload_local, delete_remote = self.compare(all_local_pictures,
@@ -423,15 +428,14 @@ class SmugMugManager(SyncManager):
 
                 start = time.perf_counter()
                 source_list = [API_ORIGIN + d.uri for d in delete_remote]
-                deletes = run_in_parallel(self._delete,
-                                        source_list,
-                                        "Deleting files: ")
-                logger.info("Deleted pictures from private SM in %.3fs."%( (time.perf_counter() - start)))
+                run_in_parallel(self._delete,
+                                source_list,
+                                "Deleting files: ")
+                logger.info("Deleted pictures from private SM in %.3fs." % (time.perf_counter() - start))
 
                 start = time.perf_counter()
                 source_list = [(u.full_path, private_path) for u in upload_local]
-                uploads = run_in_parallel(self._upload_to_album_parallel,
-                                        source_list,
-                                        "Uploading files: ")
-                logger.info("Uploaded pictures to private SM in %.3fs."%( (time.perf_counter() - start)))
-
+                run_in_parallel(self._upload_to_album_parallel,
+                                source_list,
+                                "Uploading files: ")
+                logger.info("Uploaded pictures to private SM in %.3fs." % (time.perf_counter() - start))
