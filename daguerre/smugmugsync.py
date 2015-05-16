@@ -176,22 +176,6 @@ class SmugMugManager(SyncManager):
         else:
             raise Exception("Could not authenticate user!")
 
-    def _get_all_albums(self, node, count=200):
-        parameters = {"_filter": "Name,Uri", "_filteruri": "Album", "count": count, "start":1}
-        offset = 1
-        total = 10 # not known yet, value not important other than != 0
-        all_nodes = []
-        while offset != total+1:
-            success, response = self._get(API_ORIGIN + node + "!children",
-                                         params=parameters)
-            if success:
-                parameters["start"] += count
-                #print(pretty_json(response["Node"]))
-                all_nodes.extend(response["Node"])
-                offset = response["Pages"]["Count"] + response["Pages"]["Start"]
-                total = response["Pages"]["Total"]
-        return all_nodes
-
     def _create_album(self, album_name, parent_node, public=False, description=""):
         logger.info("Creating album %s"%album_name)
         data = {
@@ -277,17 +261,27 @@ class SmugMugManager(SyncManager):
         local_path, smugmug_path = couple
         return self.upload_to_album(local_path, smugmug_path)
 
-    def _find_child_node(self, root_node, node_name):
+    def _find_child_node(self, root_node, node_name, count=200):
         logger.debug("Trying to find node %s"%node_name)
-        success, response = self._get(API_ORIGIN + root_node + "!children")
-        if success and "Node" in response:
-            nodes = response["Node"]
-            for node in nodes:
-                if node["Name"] == node_name:
-                    if node["Type"] == "Album":
-                        return node["Uri"], node["Uris"]["Album"]
-                    else:
-                        return node["Uri"], ""
+        parameters = {"_filter": "Name,Uri,Type", "_filteruri": "Album", "count": count, "start": 1} #
+        offset = 1
+        total = 10 # not known yet, value not important other than != 0
+        while offset != total+1:
+            success, response = self._get(API_ORIGIN + root_node + "!children",
+                                          params=parameters)
+            #print(pretty_json(response))
+            if success and "Node" in response:
+                nodes = response["Node"]
+                for node in nodes:
+                    if node["Name"] == node_name:
+                        if node["Type"] == "Album":
+                            return node["Uri"], node["Uris"]["Album"]
+                        else:
+                            return node["Uri"], ""
+                if "Pages" in response:
+                    parameters["start"] += count
+                    offset = response["Pages"]["Count"] + response["Pages"]["Start"]
+                    total = response["Pages"]["Total"]
         return "", ""
 
     def _find_leaf_node(self, smugmug_path):
