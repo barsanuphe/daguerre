@@ -1,8 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
 
-from daguerre.checks import *
-
+from progressbar import Bar, Counter, ETA, Percentage, ProgressBar
 import notify2
 
 

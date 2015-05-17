@@ -4,7 +4,7 @@ from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import json
 import hashlib
 import mimetypes
-from pathlib import Path
+from gi.repository import GExiv2
 
 from daguerre.checks import *
 from daguerre.logger import *

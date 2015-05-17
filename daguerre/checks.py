@@ -9,19 +9,14 @@ if sys.version_info < (3, 4, 0):
 # -- Python modules
 
 # install: python-yaml, python-xdg, python-notify2, libgexiv2 + python-gobject required,
-# python-progressbar, python-pillow
-modules = ["yaml", "xdg.BaseDirectory", "notify2", "progressbar", "gi", "PIL"]
+# python-progressbar, python-pillow, python-rauth
+modules = ["yaml", "xdg.BaseDirectory", "notify2", "progressbar", "gi", "PIL", "rauth"]
 for module in modules:
     try:
         __import__(module)
     except ImportError:
         print("%s must be installed!" % module)
         sys.exit(-1)
-
-# better imports
-from progressbar import Bar, Counter, ETA, Percentage, ProgressBar
-from gi.repository import GExiv2
-from PIL import ImageEnhance, Image
 
 # -- External binaries
 

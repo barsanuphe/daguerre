@@ -1,8 +1,9 @@
-import os
 import re
 from pathlib import Path
 import datetime
 import shutil
+from gi.repository import GExiv2
+from PIL import ImageEnhance, Image
 
 from daguerre.checks import *
 from daguerre.logger import *
