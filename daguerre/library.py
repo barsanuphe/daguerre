@@ -4,7 +4,7 @@ import concurrent.futures
 import multiprocessing
 
 from daguerre.checks import *
-from daguerre.helpers import *
+from daguerre.helpers import generate_progress_bar, run_in_parallel
 from daguerre.logger import *
 from daguerre.smugmugsync import SmugMugManager
 from daguerre.config import ConfigFile
@@ -74,18 +74,10 @@ class Library(object):
             progress_bar.finish()
             logger.debug("MOVs dealt with in %.3fs." % (time.perf_counter() - start))
 
-        # TODO use run_in_parallel
-        if jpgs_to_process:
-            cpt = 0
-            start = time.perf_counter()
-            progress_bar = generate_progress_bar("Processing JPG files: ", len(jpgs_to_process)).start()
-            with concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-                future_jpg = {executor.submit(self._post_processing_jpg, pic): pic for pic in jpgs_to_process}
-                for _ in concurrent.futures.as_completed(future_jpg):
-                    cpt += 1
-                    progress_bar.update(cpt)
-            progress_bar.finish()
-            logger.debug("JPGs dealt with in %.3fs." % (time.perf_counter() - start))
+        # process jpgs
+        start = time.perf_counter()
+        run_in_parallel(self._post_processing_jpg, jpgs_to_process, "Processing JPG files: ")
+        logger.debug("JPGs dealt with in %.3fs." % (time.perf_counter() - start))
 
     @staticmethod
     def _post_processing_jpg(picture):
@@ -159,6 +151,7 @@ class Library(object):
         print("Syncing with smugmug")
         if directory == "all":
             sync_directories = [p for p in self.config_file.directory.iterdir() if p.is_dir()]
+            sync_directories.sort()
         else:
             directory = Path(self.config_file.directory, directory)
             assert directory.exists() and directory.is_dir()

@@ -47,7 +47,7 @@ For [Smugmug](http://www.smugmug.com/) sync:
 - an existing folder for public pictures and one for private pictures
 - an [API KEY](https://api.smugmug.com/api/developer/apply)
 - a ["New Smugmug"](http://help.smugmug.com/customer/portal/articles/1212681-making-the-move-from-legacy-to-new-smugmug)
- account because `daguerre` uses Smugmug's 2.0 API. 
+ account because `daguerre` uses Smugmug's [2.0 API](https://api.smugmug.com/api/v2/doc/index.html). 
 
 
 ### Installation

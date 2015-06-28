@@ -332,14 +332,14 @@ class SmugMugManager(SyncManager):
         return all_images
 
     def _analyze_local_picture(self, path):
+        # print(path)
         with open(path.as_posix(), 'rb') as f:
             md5 = hashlib.md5(f.read()).hexdigest()
             exif = GExiv2.Metadata(path.as_posix())
             # read exif tags
+            is_public = False
             if exif.has_tag('Iptc.Application2.Keywords'):
                 is_public = (self.public_tag in exif.get_tag_multiple('Iptc.Application2.Keywords'))
-            else:
-                is_public = False
         return PictureToSync(path.name, md5, full_path=path, public=is_public)
 
     def get_local_pictures(self, local_path):
@@ -349,6 +349,7 @@ class SmugMugManager(SyncManager):
         else:
             start = time.perf_counter()
             local_pictures = [el for el in local_path.glob('*.jpg')]
+            local_pictures.sort()
             all_local_pictures = run_in_parallel(self._analyze_local_picture,
                                                  local_pictures,
                                                  "Analyzing JPG files: ")
