@@ -8,7 +8,7 @@ from PIL import ImageEnhance, Image
 from daguerre.checks import *
 from daguerre.logger import *
 
-IMG_REGEXP = re.compile(r"[\w*]_(\d{4})(-bw\d*)?(-\d*)?[.jpg|.cr2|.mov]")
+IMG_REGEXP = re.compile(r"[\w*]_?(\d{4,5})(-bw\d*)?(-\d*)?[.jpg|.cr2|.mov|.arw|.mp4]")
 
 # http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html#LensType
 LENS_TYPES = {"254": "EF100mm f/2.8L Macro IS USM"}
@@ -93,13 +93,13 @@ class Picture(object):
             self.read_metadata()
         timestamp = self.date.strftime("%Y-%m-%d-%Hh%Mm%Ss")
         if self.is_bw:
-            name = "%s_%s.%s_%04d-bw%s" % (timestamp,
+            name = "%s_%s.%s_%05d-bw%s" % (timestamp,
                                            self.camera,
                                            self.lens,
                                            int(self.number),
                                            self.path.suffix.lower())
         else:
-            name = "%s_%s.%s_%04d%s" % (timestamp,
+            name = "%s_%s.%s_%05d%s" % (timestamp,
                                         self.camera,
                                         self.lens,
                                         int(self.number),

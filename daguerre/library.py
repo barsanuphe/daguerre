@@ -45,8 +45,9 @@ class Library(object):
     def import_from_card(self, card_path):
         jpgs_to_process = []
         logger.info("# Searching for pictures or movies on card %s..." % card_path)
-        new_pics = [x for x in card_path.rglob("*") if x.suffix.lower() in ['.jpg', '.cr2']]
-        new_movs = [x for x in card_path.rglob("*") if x.suffix.lower() in ['.mov']]
+        new_pics = [x for x in card_path.rglob("*")
+                    if x.suffix.lower() in ['.jpg', '.cr2', '.arw'] and "DCIM" in x.parts]
+        new_movs = [x for x in card_path.rglob("*") if x.suffix.lower() in ['.mov', '.mp4']]
 
         if new_pics:
             start = time.perf_counter()
@@ -103,7 +104,7 @@ class Library(object):
         # list of Pictures in directory
         pics = [Picture(x, self.config_file)
                 for x in directory.rglob("*")
-                if x.suffix.lower() in ['.jpg', '.cr2']]
+                if x.suffix.lower() in ['.jpg', '.cr2', '.arw']]
         pics.sort(key=lambda p: p.path.name)
 
         all_file_groups = {}
@@ -118,7 +119,7 @@ class Library(object):
         orphans = []
         for (t, i) in all_file_groups:
             group = all_file_groups[(t, i)]
-            cr2s = [p for p in group if p.path.suffix == '.cr2']
+            cr2s = [p for p in group if p.path.suffix in ['.cr2', '.arw']]
             jpgs = [p for p in group if p.path.suffix == '.jpg']
 
             if not cr2s:
@@ -133,7 +134,7 @@ class Library(object):
             for o in orphans:
                 print("\t%s" % o.path.name)
         else:
-            print("No orphan cr2 found.")
+            print("No orphan raw file found.")
         return orphans
 
     def remove_single_raw_files(self, directory=None):
