@@ -8,9 +8,9 @@ if sys.version_info < (3, 4, 0):
 
 # -- Python modules
 
-# install: python-yaml, python-xdg, python-notify2, libgexiv2 + python-gobject required,
+# install: python-yaml, python-xdg, python-notify2,
 # python-progressbar, python-pillow, python-rauth
-modules = ["yaml", "xdg.BaseDirectory", "notify2", "progressbar", "gi", "PIL", "rauth"]
+modules = ["yaml", "xdg.BaseDirectory", "notify2", "progressbar", "PIL", "rauth"]
 for module in modules:
     try:
         __import__(module)

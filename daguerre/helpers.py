@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
+from subprocess import check_output
 
 from progressbar import Bar, Counter, ETA, Percentage, ProgressBar
 import notify2
@@ -37,3 +38,7 @@ def run_in_parallel(function, source_list, title, num_workers=cpu_count() + 1):
                 progress_bar.update(cpt)
         progress_bar.finish()
     return results
+
+
+def exiftool(fields, path):
+    return check_output(["/usr/bin/vendor_perl/exiftool", "-s3"] + fields + [path.as_posix()]).strip()

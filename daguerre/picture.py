@@ -2,17 +2,17 @@ import re
 from pathlib import Path
 import datetime
 import shutil
-from gi.repository import GExiv2
+# from gi.repository import GExiv2
 from PIL import ImageEnhance, Image
 
 from daguerre.checks import *
 from daguerre.logger import *
+from daguerre.helpers import exiftool
 
 IMG_REGEXP = re.compile(r"[\w*]_?(\d{4,5})(-bw\d*)?(-\d*)?[.jpg|.cr2|.mov|.arw|.mp4]")
 
 # http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html#LensType
 LENS_TYPES = {"254": "EF100mm f/2.8L Macro IS USM"}
-
 
 class Picture(object):
     def __init__(self, path_on_flash, config):
@@ -29,22 +29,33 @@ class Picture(object):
 
     def read_metadata(self):
         try:
-            exif = GExiv2.Metadata(self.path.as_posix())
-            datetime_original = exif["Exif.Photo.DateTimeOriginal"]
-            self.date = datetime.datetime.strptime(datetime_original,
-                                                   "%Y:%m:%d %H:%M:%S")
+            rep = exiftool(["-DateTimeOriginal", "-Model", "-LensID"], self.path)
+            infos = [el.strip() for el in rep.decode("utf-8").split("\n")]
+            try:
+                assert len(infos) == 3  # assert exif tags exist...
+            except:
+                print(infos)
+                raise Exception("Bad tags!")
+            self.date = datetime.datetime.strptime(infos[0], "%Y:%m:%d %H:%M:%S")
+            self.camera = infos[1]
+            self.lens = infos[2]
 
-            self.camera = exif["Exif.Image.Model"]
-            if exif.has_tag('Exif.Photo.LensModel'):
-                self.lens = exif['Exif.Photo.LensModel']
-            elif exif.has_tag('Exif.Canon.LensModel') and exif['Exif.Canon.LensModel'] != "":
-                self.lens = exif['Exif.Canon.LensModel']
-            elif exif.has_tag('Exif.CanonCs.LensType'):
-                self.lens = LENS_TYPES[exif['Exif.CanonCs.LensType']]
-            elif exif.has_tag("Exif.CanonCs.Lens"):
-                (max_focal, min_focal, div) = [int(el) for el in exif['Exif.CanonCs.Lens'].split()]
-                self.lens = "%s-%smm" % (int(min_focal / div), int(max_focal / div))
-            assert self.lens is not None  # out of ideas if lens is still None
+            # exif = GExiv2.Metadata(self.path.as_posix())
+            # datetime_original = exif["Exif.Photo.DateTimeOriginal"]
+            # self.date = datetime.datetime.strptime(datetime_original,
+            #                                        "%Y:%m:%d %H:%M:%S")
+
+            # self.camera = exif["Exif.Image.Model"]
+            # if exif.has_tag('Exif.Photo.LensModel'):
+            #     self.lens = exif['Exif.Photo.LensModel']
+            # elif exif.has_tag('Exif.Canon.LensModel') and exif['Exif.Canon.LensModel'] != "":
+            #     self.lens = exif['Exif.Canon.LensModel']
+            # elif exif.has_tag('Exif.CanonCs.LensType'):
+            #     self.lens = LENS_TYPES[exif['Exif.CanonCs.LensType']]
+            # elif exif.has_tag("Exif.CanonCs.Lens"):
+            #     (max_focal, min_focal, div) = [int(el) for el in exif['Exif.CanonCs.Lens'].split()]
+            #     self.lens = "%s-%smm" % (int(min_focal / div), int(max_focal / div))
+            # assert self.lens is not None  # out of ideas if lens is still None
 
             if self.camera in self.config.cameras:
                 self.camera = self.config.cameras[self.camera]

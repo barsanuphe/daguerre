@@ -51,8 +51,8 @@ class Library(object):
 
         if new_pics:
             start = time.perf_counter()
-            logger.debug("Dealing with JPG/CR2 files...")
-            progress_bar = generate_progress_bar("Archiving JPG/CR2 files: ", len(new_pics)).start()
+            logger.debug("Dealing with JPG/RAW files...")
+            progress_bar = generate_progress_bar("Archiving JPG/RAW files: ", len(new_pics)).start()
             for (i, pic_filename) in enumerate(new_pics):
                 pic = Picture(pic_filename, self.config_file)
                 pic.read_metadata()
