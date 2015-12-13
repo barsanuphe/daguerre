@@ -9,10 +9,11 @@ from daguerre.checks import *
 from daguerre.logger import *
 from daguerre.helpers import exiftool
 
-IMG_REGEXP = re.compile(r"[\w*]_?(\d{4,5})(-bw\d*)?(-\d*)?[.jpg|.cr2|.mov|.arw|.mp4]")
+IMG_REGEXP = re.compile(r"^(.*)_(\d{4,5})(-bw\d*)?(-\d*)?[.jpg|.cr2|.mov|.arw|.mp4]")
 
 # http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html#LensType
 LENS_TYPES = {"254": "EF100mm f/2.8L Macro IS USM"}
+
 
 class Picture(object):
     def __init__(self, path_on_flash, config):
@@ -26,6 +27,7 @@ class Picture(object):
         self._is_bw = None
         self._number = None
         self._version = None
+        self._filename_prefix = None
 
     def read_metadata(self):
         try:
@@ -74,10 +76,16 @@ class Picture(object):
 
     def _parse_filename(self):
         try:
-            (self._number, bw, self._version) = self.expr.findall(self.path.name.lower())[0]
+            (self._filename_prefix, self._number, bw, self._version) = self.expr.findall(self.path.name.lower())[0]
             self._is_bw = ('-bw' in bw)
         except:
             raise Exception("Bad format for file %s" % self.path)
+
+    @property
+    def file_prefix(self):
+        if self._filename_prefix is None:
+            self._parse_filename()
+        return self._filename_prefix
 
     @property
     def number(self):

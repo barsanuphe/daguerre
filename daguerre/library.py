@@ -110,11 +110,10 @@ class Library(object):
         all_file_groups = {}
         # group by number and date
         for p in pics:
-            p.read_metadata()
-            if (p.date, p.number) in all_file_groups:
-                all_file_groups[(p.date, p.number)].append(p)
+            if (p.file_prefix, p.number) in all_file_groups:
+                all_file_groups[(p.file_prefix, p.number)].append(p)
             else:
-                all_file_groups[(p.date, p.number)] = [p]
+                all_file_groups[(p.file_prefix, p.number)] = [p]
 
         orphans = []
         for (t, i) in all_file_groups:
@@ -135,10 +134,13 @@ class Library(object):
                 print("\t%s" % o.path.name)
         else:
             print("No orphan raw file found.")
-        return orphans
+        return orphans, len(pics)
 
     def remove_single_raw_files(self, directory=None):
-        orphans = self.list_single_raw_files(directory)
+        start = time.time()
+        orphans, number_of_pics = self.list_single_raw_files(directory)
+        print("\n%s pictures analyzed in %.2fs" % (number_of_pics,
+                                                   time.time() - start))
         if orphans:
             rep = input("\n!! Remove files? (y/N) ")
             if rep.lower() == "y":

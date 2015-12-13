@@ -4,6 +4,8 @@ from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import json
 import hashlib
 import mimetypes
+import gi
+gi.require_version('GExiv2', '0.10')
 from gi.repository import GExiv2
 
 from daguerre.checks import *
@@ -309,7 +311,8 @@ class SmugMugManager(SyncManager):
     def get_album_images(self, smugmug_path, count=200):
         smugmug_node, smugmug_albumuri = self._find_leaf_node(smugmug_path)
         parameters = {
-            "_filter": "ArchivedMD5, FileName, Uri, Format",
+            # TODO find out why this does not work anymore
+            #  "_filter": "ArchivedMD5, FileName, Uri, Format",
             "_filteruri": "Image",
             "count": count,
             "start": 1
