@@ -9,7 +9,7 @@ from daguerre.checks import *
 from daguerre.logger import *
 from daguerre.helpers import exiftool
 
-IMG_REGEXP = re.compile(r"^(.*)_(\d{4,5})(-bw\d*)?(-\d*)?[.jpg|.cr2|.mov|.arw|.mp4]")
+IMG_REGEXP = re.compile(r"^(.*)?(\d{4,5})(-bw\d*)?(-\d*)?[.jpg|.cr2|.mov|.arw|.mp4]")
 
 # http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html#LensType
 LENS_TYPES = {"254": "EF100mm f/2.8L Macro IS USM"}
