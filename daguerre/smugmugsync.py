@@ -4,10 +4,6 @@ from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import json
 import hashlib
 import mimetypes
-import gi
-gi.require_version('GExiv2', '0.10')
-from gi.repository import GExiv2
-
 from daguerre.checks import *
 from daguerre.logger import *
 from daguerre.helpers import *
@@ -338,11 +334,13 @@ class SmugMugManager(SyncManager):
         # print(path)
         with open(path.as_posix(), 'rb') as f:
             md5 = hashlib.md5(f.read()).hexdigest()
-            exif = GExiv2.Metadata(path.as_posix())
+
             # read exif tags
+            rep = exiftool(["-Keywords"], path.as_posix())
+            infos = [el.strip() for el in rep.decode("utf-8").split("\n")]
             is_public = False
-            if exif.has_tag('Iptc.Application2.Keywords'):
-                is_public = (self.public_tag in exif.get_tag_multiple('Iptc.Application2.Keywords'))
+            if len(infos) == 1 and self.public_tag in infos[0]:
+                is_public = True
         return PictureToSync(path.name, md5, full_path=path, public=is_public)
 
     def get_local_pictures(self, local_path):
